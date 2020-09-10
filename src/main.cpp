@@ -2,20 +2,27 @@
 #include <BLEDevice.h>
 #include <BLEScan.h>
 #include <BLEAdvertisedDevice.h>
-#include "Tone32.h"
+#include <FastLED.h>
+#include <Tone32.h>
+
+// provides the PRIx64 macro
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+
+#define DATA_PIN 27
+#define NUM_LEDS 1
+CRGB leds[NUM_LEDS];
 
 
-// Pin where the + of an LED is connected.
-#define LED_PIN 0
 
 // Pin where the + of a piezo buzzer is connected.
-#define BUZZER_PIN 2
+#define BUZZER_PIN 32
 
 // Tone to play.
 #define BEEP_NOTE NOTE_C6
 
 // Tone duration in milliseconds.
-#define BEEP_DURATION_MS 100
+#define BEEP_DURATION_MS 50
 
 // Scan update time, 5 seems to be a good value.
 #define SCAN_TIME_SECONDS 5
@@ -32,10 +39,19 @@ std::map<std::string, unsigned long> seenNotifiers;
  * Called when a new exposure notifier is seen.
  */
 void onNewNotifierFound() {
-  Serial.println("BEEP");
-  digitalWrite(LED_PIN, HIGH);
+  leds[0] = CRGB::Red;
+  FastLED.show();
   tone(BUZZER_PIN, BEEP_NOTE, BEEP_DURATION_MS, 0);
-  digitalWrite(LED_PIN, LOW);
+  leds[0] = CRGB::Black;
+  FastLED.show();
+}
+
+void onOldNotifierFound() {
+  leds[0] = CRGB::Blue;
+  FastLED.show();
+  delay(20);
+  leds[0] = CRGB::Black;
+  FastLED.show();
 }
 
 
@@ -58,6 +74,7 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
     else {
       // We've already seen this one.
       Serial.printf("... %s \r\n", advertisedDevice.getAddress().toString().c_str());
+      onOldNotifierFound();
     }
 
     // Remember, with time.
@@ -84,7 +101,7 @@ void setup() {
   Serial.println("Hi.");
 
   // Initialize pins.
-  pinMode(LED_PIN, OUTPUT);
+  FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
   pinMode(BUZZER_PIN, OUTPUT);
 
   // Initialize scanner.
